@@ -16,13 +16,10 @@ The simulations evolve the local charge-density configuration and compute the co
 │
 ├── data/
 │   ├── square_lattice/
-│   │   ├── density-*.txt
-│   │   └── force-*.txt
+│   │   └── SquareLattice.zip
 │   │
 │   └── triangle_lattice/
-│       ├── density-*.txt
-│       ├── force-*.txt
-│       └── dos-*.txt
+│       └── TriangularLattice.zip
 │
 └── README.md
 ```
