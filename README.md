@@ -1,69 +1,34 @@
 # Exact Simulations of the Spinless t–V Model
 
-This repository contains exact numerical simulation code and data for studying charge-density-wave (CDW) ordering and domain-coarsening dynamics in the spinless t–V model on both square and triangular lattices.
+This repository contains exact numerical simulation code and a small sample of simulation data for studying charge-density-wave (CDW) ordering and domain-coarsening dynamics in the spinless t–V model on square and triangular lattices.
 
-The simulations evolve the local charge-density configuration and compute the corresponding thermodynamic forces from the microscopic electronic model. The resulting data can be used as exact-simulation benchmarks for analyzing CDW dynamics and for comparison with machine-learning models.
+The full simulation data sets are much larger than what is included here. To keep the repository compact, only **three independent runs** are provided for each lattice geometry as representative samples.
 
 ## Repository Structure
 
 ```text
 .
 ├── code/
-│   ├── square-lattice.jl
-│   ├── triangle-lattice.jl
+│   ├── square-lattice simulation code
+│   ├── triangle-lattice simulation code
 │   ├── lattice.csv
 │   └── cdw-pattern.csv
 │
 ├── data/
 │   ├── square_lattice/
-│   │   └── SquareLattice.zip
+│   │   └── 11-part compressed archive for 3 independent runs
 │   │
 │   └── triangle_lattice/
-│       └── TriangularLattice.zip
+│       └── data from 3 independent runs
 │
 └── README.md
 ```
 
-## Code
+## Simulation Code
 
-### `code/square-lattice.jl`
+The Julia programs perform exact simulations of the spinless t–V model and generate the local charge-density configurations and their corresponding thermodynamic forces.
 
-Exact simulation of the spinless t–V model on a square lattice.
-
-The square-lattice implementation uses four nearest neighbors for each site:
-
-- left,
-- right,
-- top,
-- bottom.
-
-Periodic boundary conditions are applied in both spatial directions.
-
-### `code/triangle-lattice.jl`
-
-Exact simulation of the spinless t–V model on a triangular lattice.
-
-This implementation does not hard-code the triangular-lattice connectivity. Instead, it reads the lattice connectivity from
-
-```text
-lattice.csv
-```
-
-and the CDW initialization pattern from
-
-```text
-cdw-pattern.csv
-```
-
-The number of lattice sites and the coordination number are inferred directly from `lattice.csv`.
-
----
-
-## Requirements
-
-The simulations are written in Julia and use GPU acceleration through CUDA.
-
-Required Julia packages are
+The simulations use
 
 ```julia
 using CUDA
@@ -72,191 +37,126 @@ using LinearAlgebra
 using Random
 ```
 
-A CUDA-compatible NVIDIA GPU and a working CUDA.jl installation are required.
+and therefore require Julia, CUDA.jl, and a CUDA-compatible NVIDIA GPU.
 
 ---
 
 # Square-Lattice Simulation
 
-## Default Parameters
+The square-lattice simulation uses a `64 × 64` lattice with periodic boundary conditions and four nearest neighbors per site.
 
-The default parameters used in `square-lattice.jl` are
+## Parameters
+
+The current square-lattice calculation uses
 
 ```julia
-dim   = 64      # lattice size: 64 × 64
+dim   = 64      # system size: 64 × 64
 fil   = 0.5     # filling factor
 kT    = 2e-1    # electronic temperature
 tnn   = 2.0     # nearest-neighbor hopping
 vnn   = 1.0     # nearest-neighbor repulsion
 W     = 0.0     # disorder strength
 
-stp   = 5e-0    # step size for convergence
+stp   = 5e-0    # convergence step
 dt    = 5e-3    # time step for order-parameter dynamics
 ```
 
-The system size is therefore
+The main dynamical simulation runs for 10,000 steps. Density and force snapshots are stored every 10 dynamical steps.
+
+The initial charge-density configuration is generated from a random onsite potential. For each target density configuration, the corresponding onsite potential is determined iteratively, and the thermodynamic force is obtained from the converged solution.
+
+## Output
+
+The square-lattice simulation generates
 
 ```text
-64 × 64 = 4096 sites.
+density-*.txt
+force-*.txt
 ```
 
-The simulation is performed at half filling.
+where `*` denotes the simulation-run index.
 
-## Initialization
-
-The initial charge-density configuration is generated from a random onsite potential.
-
-For a target charge-density configuration, the corresponding onsite potential is obtained iteratively. The conjugate thermodynamic force is then calculated from the converged solution.
-
-A self-consistent calculation is first used to determine the equilibrium chemical potential and CDW order parameter.
-
-## Dynamics
-
-The main dynamical loop runs for
+Each density snapshot contains
 
 ```text
-10,000 steps
+64 × 64 = 4096
 ```
 
-The density configuration is updated according to the calculated thermodynamic force together with a small random perturbation.
+site-resolved charge-density values.
 
-The density and force are stored every 10 dynamical steps.
+The corresponding `force-*.txt` file uses the same site ordering and saved time steps.
 
-## Running the Square-Lattice Simulation
+## Sample Data Included in This Repository
 
-The program takes one integer command-line argument. This integer is used as
+Only **three independent square-lattice runs** are included as sample data.
 
-1. the CUDA random seed, and
-2. the simulation-run index used in the output filenames.
+Because these files are still relatively large, the three runs have been compressed into a **split archive containing 11 compressed parts**.
 
-For example,
-
-```bash
-julia square-lattice.jl 1
-```
-
-generates
+All 11 parts must be kept together in the same directory before extraction. The archive should be extracted starting from
 
 ```text
-density-1.txt
-force-1.txt
+square_lattice.zip
 ```
 
-To save the output directly into the square-lattice data directory, one convenient workflow is
+using an archive program that supports split ZIP files.
 
-```bash
-cd data/square_lattice
-julia ../../code/square-lattice.jl 1
-```
+After extraction, the square-lattice sample data contain the corresponding `density-*.txt` and `force-*.txt` files for the three retained independent runs.
 
-Independent runs can be generated using different seeds:
-
-```bash
-julia ../../code/square-lattice.jl 1
-julia ../../code/square-lattice.jl 2
-julia ../../code/square-lattice.jl 3
-```
-
-## Square-Lattice Output
-
-### `density-*.txt`
-
-Contains the local electron density at each saved simulation snapshot.
-
-For the current lattice,
-
-```text
-N = 64 × 64 = 4096
-```
-
-density values are stored per snapshot.
-
-The data can be reshaped for analysis as
-
-```python
-(num_snapshots, 64 * 64)
-```
-
-### `force-*.txt`
-
-Contains the thermodynamic force corresponding to the density configurations in the matching `density-*.txt` file.
-
-For example,
-
-```text
-density-1.txt
-force-1.txt
-```
-
-belong to the same independent simulation run.
+The compressed archive is provided only as a compact sample of the exact simulation data; it is not the complete square-lattice data set.
 
 ---
 
 # Triangular-Lattice Simulation
 
-## Lattice Connectivity Input
+The triangular-lattice simulation uses a `63 × 63` lattice and a three-sublattice CDW pattern.
 
-The triangular-lattice program explicitly imports
+The reference simulation setup uses
+
+```julia
+dim     = 63     # system size: 63 × 63
+tnn     = 1.0    # nearest-neighbor hopping
+vnn     = 2.0    # nearest-neighbor repulsion
+dt      = 1e-2   # time step
+kT      = 4e-1   # electronic temperature
+filling = 1/3    # filling factor
+```
+
+The triangular-lattice implementation reads its lattice connectivity and CDW initialization pattern from two input files:
 
 ```text
 lattice.csv
+cdw-pattern.csv
 ```
 
-through
+## `lattice.csv`
 
-```julia
-lat = CuArray(readdlm("lattice.csv", ',', Int64))
-```
+The supplied `lattice.csv` contains the connectivity information for the triangular lattice.
 
-Each row of `lattice.csv` corresponds to one lattice site, and each entry in that row gives the index of one connected neighboring site.
-
-The supplied `lattice.csv` has
+It has
 
 ```text
 3969 rows × 6 columns
 ```
 
-so the program interprets it as
+corresponding to
 
 ```text
-nSt  = 3969 lattice sites
-ncor = 6 nearest neighbors per site
-dim  = sqrt(3969) = 63
+63 × 63 = 3969 lattice sites
 ```
 
-Therefore, the supplied connectivity file corresponds to a `63 × 63` triangular lattice with coordination number 6.
+with six nearest neighbors per site.
 
-The program determines these quantities automatically using
+The Julia program reads this file with
 
 ```julia
-ncor = size(lat)[2]
-nSt  = size(lat)[1]
-dim  = Int64(sqrt(nSt))
+lat = CuArray(readdlm("lattice.csv", ',', Int64))
 ```
 
-This connectivity table is then used when constructing the hopping Hamiltonian, evaluating the nearest-neighbor interaction contribution, and calculating the thermodynamic force.
+and obtains the system size and coordination number from the dimensions of the imported array.
 
-## CDW Pattern Input
+## `cdw-pattern.csv`
 
-The triangular-lattice program also explicitly imports
-
-```text
-cdw-pattern.csv
-```
-
-through
-
-```julia
-cdw = CuArray(readdlm("cdw-pattern.csv", Int64))
-```
-
-The supplied `cdw-pattern.csv` contains
-
-```text
-3969 entries
-```
-
-which matches the 3969 lattice sites defined by `lattice.csv`.
+The supplied `cdw-pattern.csv` contains 3969 entries and defines the three-sublattice CDW reference pattern used to initialize the self-consistent calculation.
 
 The entries take the values
 
@@ -264,17 +164,9 @@ The entries take the values
 0, 1, 2
 ```
 
-and form a repeating three-sublattice pattern on the `63 × 63` triangular lattice. When reshaped into the lattice geometry, the pattern begins as
+in a repeating three-sublattice pattern.
 
-```text
-0 1 2 0 1 2 ...
-2 0 1 2 0 1 ...
-1 2 0 1 2 0 ...
-0 1 2 0 1 2 ...
-...
-```
-
-The Julia program uses this file to initialize the density through
+The Julia program reads this file and initializes the density according to
 
 ```julia
 nn[idx] = fil * cdw[idx]
@@ -286,199 +178,146 @@ with
 fil = 1/3
 ```
 
-so the corresponding initial density values are
+so the initial density values on the three sublattices are
 
 ```text
 0, 1/3, 2/3
 ```
 
-on the three sublattices.
+## Output
 
-Thus, `cdw-pattern.csv` specifies the three-sublattice CDW reference pattern used to initialize the self-consistent triangular-lattice calculation.
-
-Both `lattice.csv` and `cdw-pattern.csv` must be available in the working directory when `triangle-lattice.jl` is executed.
-
-## Default Parameters
-
-The default parameters used in `triangle-lattice.jl` are
-
-```julia
-fil   = 1/3     # filling factor
-kT    = 4e-1    # electronic temperature
-tnn   = 1.0     # nearest-neighbor hopping
-vnn   = 2.0     # nearest-neighbor repulsion
-W     = 0.0     # disorder strength
-
-stp   = 8e-0    # step size for convergence
-dt    = 1e-2    # time step for order-parameter dynamics
-```
-
-For the supplied `lattice.csv`, the simulation size is
+The triangular-lattice simulation generates files such as
 
 ```text
-63 × 63 = 3969 sites.
+density-*.txt
+force-*.txt
+dos-*.txt
 ```
 
-## Chemical Potential and Self-Consistent Calculation
+The `density-*.txt` files contain the site-resolved charge density, and the corresponding `force-*.txt` files contain the thermodynamic forces using the same ordering.
 
-The triangular-lattice implementation determines the chemical potential numerically for the target filling.
+The `dos-*.txt` files contain the single-particle eigenvalue spectrum stored during the simulation.
 
-A self-consistent calculation is then used to obtain the equilibrium charge-density configuration and CDW order parameter before the dynamical simulation starts.
+## Sample Data Included in This Repository
 
-## Dynamics
+Only **three independent triangular-lattice runs** are included as sample data.
 
-The main dynamical loop runs for
-
-```text
-10,000 steps.
-```
-
-In the current triangular-lattice implementation, the target density is updated according to the calculated thermodynamic force:
-
-```julia
-target += lnn * dt
-```
-
-The density, force, and single-particle energy spectrum are stored every 100 dynamical steps.
-
-## Running the Triangular-Lattice Simulation
-
-Because the program reads `lattice.csv` and `cdw-pattern.csv` from the current working directory, a convenient organization is to keep all four files together inside `code/`:
-
-```text
-code/
-├── triangle-lattice.jl
-├── lattice.csv
-└── cdw-pattern.csv
-```
-
-Then run
-
-```bash
-cd code
-julia triangle-lattice.jl 1
-```
-
-This generates files such as
-
-```text
-density-1.txt
-force-1.txt
-dos-1.txt
-```
-
-The resulting files can then be moved to
+Because the triangular-lattice sample is small enough for direct storage in the repository, these files are uploaded directly under
 
 ```text
 data/triangle_lattice/
 ```
 
-Independent runs can be generated using different random seeds:
+without additional compression.
 
-```bash
-julia triangle-lattice.jl 1
-julia triangle-lattice.jl 2
-julia triangle-lattice.jl 3
-```
-
-## Triangular-Lattice Output
-
-### `density-*.txt`
-
-Contains the local electron density for each saved snapshot.
-
-For the supplied lattice, each configuration contains
-
-```text
-3969 density values.
-```
-
-### `force-*.txt`
-
-Contains the corresponding thermodynamic force for each saved density configuration.
-
-### `dos-*.txt`
-
-Contains the single-particle eigenvalue spectrum stored together with the density and force snapshots.
-
-For a given run index,
-
-```text
-density-1.txt
-force-1.txt
-dos-1.txt
-```
-
-belong to the same simulation run.
+These three runs are representative examples only and do not constitute the complete triangular-lattice simulation data set.
 
 ---
 
 # Random Seeds and Independent Runs
 
-Both simulation programs use the first command-line argument as the CUDA random seed:
+The simulation programs use the first command-line argument as the CUDA random seed:
 
 ```julia
 CUDA.seed!(parse(Int, ARGS[1]))
 ```
 
-Different integer arguments therefore generate independent simulations.
+Different integer seeds therefore generate independent simulation runs.
 
-The same integer is also used in the output filenames, which makes it straightforward to associate each data file with the corresponding simulation run.
+The same run index is also used in the output filenames, for example
+
+```text
+density-1.txt
+force-1.txt
+```
+
+for one run and
+
+```text
+density-2.txt
+force-2.txt
+```
+
+for another.
 
 ---
 
-# Data Organization
+# Data Format
 
-Simulation results are organized according to lattice geometry:
+## `density-*.txt`
+
+Contains the local electron density at the saved simulation times.
+
+For a lattice with `N` sites, each saved configuration contains `N` density values.
+
+For the square lattice,
 
 ```text
-data/
-├── square_lattice/
-│   └── square-lattice exact simulation data
-│
-└── triangle_lattice/
-    └── triangular-lattice exact simulation data
+N = 4096
 ```
 
-This separation makes subsequent analysis, visualization, and machine-learning benchmarking easier.
+and for the triangular lattice,
+
+```text
+N = 3969.
+```
+
+The data can be reshaped during analysis into the form
+
+```python
+(num_snapshots, num_sites)
+```
+
+## `force-*.txt`
+
+Contains the thermodynamic force corresponding to each saved density configuration.
+
+A matching pair such as
+
+```text
+density-1.txt
+force-1.txt
+```
+
+belongs to the same simulation run and uses the same snapshot and site ordering.
+
+## `dos-*.txt`
+
+For the triangular-lattice simulation, these files contain the single-particle eigenvalue spectrum saved together with the density and force data.
 
 ---
 
 # Typical Workflow
 
-A typical workflow is
+A typical workflow is:
 
-1. Select the lattice geometry.
-2. For the triangular lattice, make sure `lattice.csv` and `cdw-pattern.csv` are available in the working directory.
-3. Select a random seed for an independent simulation run.
-4. Run the corresponding Julia program.
-5. Store the generated data in the corresponding lattice folder.
-6. Reshape and analyze the density configurations.
-7. Construct the appropriate CDW order parameter if needed.
-8. Compute correlation functions, characteristic length scales, or other observables.
-9. Compare the exact simulation with machine-learning predictions.
+1. Select either the square- or triangular-lattice simulation.
+2. Choose a random seed for an independent run.
+3. For the triangular lattice, ensure that `lattice.csv` and `cdw-pattern.csv` are available in the working directory.
+4. Run the corresponding Julia simulation.
+5. Store the generated files in the appropriate data directory.
+6. Reshape the density configurations for analysis.
+7. Construct the corresponding CDW order parameter if needed.
+8. Calculate quantities such as correlation functions and characteristic length scales.
+9. Compare the exact simulations with machine-learning predictions or other dynamical simulations.
 
 ---
 
-# Notes
+# Notes on the Included Data
 
-- `square-lattice.jl` implements the square-lattice t–V simulation.
-- `triangle-lattice.jl` implements the triangular-lattice t–V simulation.
-- The square-lattice simulation uses four nearest neighbors with periodic boundary conditions.
-- The triangular-lattice simulation reads its connectivity from `lattice.csv`.
-- `cdw-pattern.csv` contains a 3969-site three-sublattice pattern with labels `0`, `1`, and `2`, used to initialize the triangular-lattice self-consistent calculation.
-- The supplied triangular-lattice connectivity file contains 3969 sites with 6 neighbors per site, corresponding to a `63 × 63` triangular lattice.
-- The square-lattice simulation uses filling `1/2`.
-- The triangular-lattice simulation uses filling `1/3`.
-- Both programs run for 10,000 dynamical steps in their current form.
-- Square-lattice density and force snapshots are stored every 10 steps.
-- Triangular-lattice density, force, and energy-spectrum snapshots are stored every 100 steps.
-- Different runs are distinguished by the integer random seed passed through the command line.
+The data in this GitHub repository are intended as **small representative samples** of the exact simulations.
+
+- Three independent runs are provided for the square lattice.
+- Three independent runs are provided for the triangular lattice.
+- The square-lattice samples are distributed as an 11-part split ZIP archive because of their larger file sizes.
+- All square-lattice archive parts must be downloaded before extracting `square_lattice.zip`.
+- The triangular-lattice samples are stored directly in the repository.
+- The complete simulation data sets are not included in this repository.
 
 ---
 
 # Reference
 
-This repository contains exact simulation code and data associated with the study of charge-density-wave dynamics in the spinless t–V model.
+This repository contains exact simulation code and representative data associated with studies of charge-density-wave dynamics in the spinless t–V model.
 
-If you use this code or the accompanying data in research, please cite the corresponding manuscript/publication.
+If you use the code or data in research, please cite the corresponding manuscript/publication.
